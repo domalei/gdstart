@@ -20,6 +20,7 @@ from math import cos, radians, sin
 
 from euclid3 import Point3
 
+import solid
 from solid import scad_render_to_file
 from solid.utils import extrude_along_path
 
@@ -48,8 +49,8 @@ SEGMENTS = 48
 def face(xdim, ydim):
     face_pts = [Point3(0,0,0)]
     face_pts.append(Point3(0,ydim,0))
-    face_pts.append(Point3(xdim,0,0))
     face_pts.append(Point3(xdim,ydim,0))
+    face_pts.append(Point3(xdim,0,0))
     return face_pts
 
 def linearpath(x,y,z):
