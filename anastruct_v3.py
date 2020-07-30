@@ -33,19 +33,25 @@ for i in range(28):
 
 #slider = Slider('Force', valmin=0, valmax=100)
 #N takes out the info from details. n[0] incourperates all of the nodes and n[1] incourperates all of the segments. Therefore n[0][0] gives the first node independtly. 
-nodes,segs = getstructuredetails('Warren')
+nodes,segs,fixednodes,loadnodes = getstructuredetails('Warren')
 
 #loop through segments and create them
 for s in segs:
     ss.add_element(location=[nodes[s[0]], nodes[s[1]]], EA=15000, g=2)
 
+for f in fixednodes:
+    ss.add_support_fixed(node_id=f)
+
+for l in loadnodes:
+    ss.point_load(l, Fx=0,Fy=-10)
+
+
 
 #supports and loads
-ss.add_support_fixed(node_id=[1])
 #ss.point_load(2,Fx=20,rotation=90)
-ss.add_support_fixed(node_id=ss.id_last_node)
-ss.point_load(2, Fx=0,Fy=-10)
-ss.point_load(4, Fx=0,Fy=-10)
+#ss.add_support_fixed(node_id=ss.id_last_node)
+#ss.point_load(2, Fx=0,Fy=-10)
+#ss.point_load(4, Fx=0,Fy=-10)
 info = []
 info.append(ss.get_node_results_system())
 #print(info)

@@ -33,6 +33,8 @@ def optimize_segment_weights(nodelocations, *, segments=None, loads=None, othera
 #trusstype takes on one of three values: Warren, Miller, and Howe.
 def getstructuredetails(trusstype):
     if trusstype == 'Warren':
+        fixednodes = [0,4]
+        loadnodes = [1,3]
         nodes = [[0,0],[5,10],[10,0],[15,10],[20,0]]
         segs = [[0,1],[1,2],[2,3],[3,4],[0,4 ],[1,3]]
     elif trusstype == "Howe":
@@ -41,7 +43,7 @@ def getstructuredetails(trusstype):
     elif trusstype == "Miller":
         nodes = ([0,0],[5,10],[10,0],[15,10],[20,0])
         segs = ([0,1],[1,2],[2,3],[])
-    return nodes,segs
+    return nodes,segs,fixednodes,loadnodes
     
     
 
