@@ -32,7 +32,9 @@ def makestructure(nodes,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA
     ss = SystemElements()
     #loop through segments and create them
     for s,thickness in zip(segs,thicknesses):
-        ss.add_element(location=[nodes[s[0]], nodes[s[1]]], EA=tensile*thickness*strutwidth,g=0, spring ={1:0.0001,2:0.0001})
+        ss.add_truss_element(location=[nodes[s[0]], nodes[s[1]]], EA=tensile*thickness*strutwidth,g=0, spring ={1:0.0001,2:0.0001})
+    
+    #
     
     for f,supporttype in fixednodes:
         if supporttype == 'hinged':
@@ -93,8 +95,8 @@ def optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses,tensile
         ss.show_axial_force(factor=.05)
         #ss.show_reaction_force()
         #ss.show_shear_force()
-        '''if np.allclose(newthicknesses, thicknesses, atol = 0.01):
-            break'''
+        if np.allclose(newthicknesses, thicknesses, atol = 0.01):
+            break
         thicknesses = newthicknesses
     elementweights = [thickness*strutwidth*result['length']*densityPLA
                       for thickness,result in zip(thicknesses,elementsresults)]
@@ -105,7 +107,7 @@ def optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses,tensile
 
 
 def main():
-    nodes,segs,fixednodes,loadnodes = getstructuredetails('Warren')
+    nodes,segs,fixednodes,loadnodes = getstructuredetails('Triangle')
     thicknesses = np.ones(len(segs))
     totalweight,thicknesses,ss = optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA)
             
