@@ -14,14 +14,7 @@ def minweight(nodelocations,  *, segments=None, loads=None, **kwargs):
 	weight, *otherresults = optimize_segment_weights(nodelocations,  *, segments, loads, **kwargs)
 	return weight
 
-def optimize_segment_weights(nodelocations, *, segments=None, loads=None, otherargs):
-	nodelocations = np.asarray(nodelocations).resize((-1,2))	# Ensure an [[x,y],…] array shape
-	if segments is None or loads is None:
-		raise RuntimeError(“Need to specify segments and load values”)
-	
-	# For a few iterations, calculate the minimum weight of each segment that can bear the given loads
-       ….
-	return totalweight, segmentthicknesses, otherstuff 
+ 
 
 
 
@@ -33,7 +26,7 @@ def optimize_segment_weights(nodelocations, *, segments=None, loads=None, othera
 #trusstype takes on one of three values: Warren, Miller, and Howe.
 def getstructuredetails(trusstype):
     if trusstype == 'Warren':
-        fixednodes = [0,4]
+        fixednodes = [[0,'hinged'],[4,'hinged']]
         loadnodes = [1,3]
         nodes = [[0,0],[5,10],[10,0],[15,10],[20,0]]
         segs = [[0,1],[1,2],[2,3],[3,4],[0,4 ],[1,3]]
@@ -42,7 +35,12 @@ def getstructuredetails(trusstype):
         segs = ([0,1],[1,2],[2,3],[])
     elif trusstype == "Miller":
         nodes = ([0,0],[5,10],[10,0],[15,10],[20,0])
-        segs = ([0,1],[1,2],[2,3],[])
+        segs = ([0,1],[1,2],[2,3],[])    
+    elif trusstype == "Triangle":
+        fixednodes = [[0,'hinged'],[2,'hinged']]
+        loadnodes = [1]
+        nodes = ([0,0],[5,10],[10,0])
+        segs = ([0,1],[2,1],[2,0])
     return nodes,segs,fixednodes,loadnodes
     
     
