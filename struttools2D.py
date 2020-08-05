@@ -9,8 +9,8 @@ from solid import scad_render_to_file
 from solid.utils import *
 import matplotlib.pyplot as plt
 from solid import *
-from Documents.PracticeCoding.Structtools.optimizetruss import getstructuredetails
-
+from optimizetruss import getstructuredetails
+from anastruct_v3 import optimize_segment_weights
 
 
 SEGMENTS = 48  
@@ -64,26 +64,41 @@ if __name__ == '__main__':
     #---------------------- initialization
     debug = True
     outfn = 'bridge.scad'
-    scalefactor = 10
+    scalefactor = 1
 
-    nodes,segs = getstructuredetails('Warren')
+    nodes,segs,fixednodes,loadnodes = getstructuredetails('Warren')
+    
+    #nominalnodelocations,segs,fixednodes,loadnodes = getstructuredetails('Warren')
+    thicknesses = np.ones(len(segs))
+    totalweight,thicknesses,ss = optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses)
+    tmax = max(thicknesses)
+    
+    
     scalednodes = []
     for n in nodes:
         scalednodes.append([n[0]*scalefactor, n[1]*scalefactor])
     #sparwidth
-    t = 2.0  
+  
     #---------------------- here we go
     #initialize bridge
     bridge = createjoint([0,0],0)
     #loop through nodes and create them
     for p in scalednodes:
-        bridge = bridge + createjoint(p,t)
+        bridge = bridge + createjoint(p,tmax)
     #loop through segments and create them
-    for s in segs:
+    for i in range(len(segs)):
+        s = segs[i]
+        t = thicknesses[i]
         bridge = bridge + createseg(scalednodes[s[0]],scalednodes[s[1]],t)
-
+    
+    
+    '''for s in segs:
+        bridge = bridge + createseg(scalednodes[s[0]],scalednodes[s[1]],thicknesses[s])'''
+    
+    
     #render to openScad    
-    scad_render_to_file(bridge, outfn)      
+    scad_render_to_file(bridge, outfn) 
+
 
 #------------------------------END, Random below-------------------------------
 

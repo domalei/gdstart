@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 #from matplotlib.widgets import Slider
 import numpy as np
 from anastruct import SystemElements
-
+from functools import partial
+from scipy.optimize import minimize
 from optimizetruss import getstructuredetails
 #these are in millimeters
 minthickness = 0.25
@@ -26,6 +27,8 @@ densityABS = 1.04e-3
 
 elasticmodulusPLA = 3300e6*(1e-3*1e-3)
 elasticmodulusABS = 1800e6*(1e-3*1e-3)
+
+
 
 def makestructure(nodes,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA,totalload = 100):
     
@@ -50,7 +53,7 @@ def makestructure(nodes,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA
     
     return ss
 
-def thicknessforforce(force):
+def thicknessforforce(force, length):
     if force == 0:
         thickness = minthickness
     elif force > 0:
@@ -58,37 +61,29 @@ def thicknessforforce(force):
         thickness = force/(tensilePLA*strutwidth)
     elif force < 0:
         #compression(not technically correct)
+        #add in equation from buckling page on wiki and use length from optimization
         thickness = (-force)/(tensilePLA*strutwidth)
+            
     return max(minthickness,thickness)
     
 
 
-def optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA):
+def optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses = None,tensile=tensilePLA):
     nodes = np.reshape(np.asarray(nodes),(-1,2))	# Ensure an [[x,y],…] array shape
-    
+    if thicknesses is None:
+        thicknesses = np.ones(len(segs))
     if segs is None or loadnodes is None:
         raise RuntimeError('Need to specify segments and load values')
     
     for i in range(10):
         ss = makestructure(nodes,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA)
         
-        
-        
-        
-        #supports and loads
-        #ss.point_load(2,Fx=20,rotation=90)
-        #ss.add_support_fixed(node_id=ss.id_last_node)
-        #ss.point_load(2, Fx=0,Fy=-10)
-        #ss.point_load(4, Fx=0,Fy=-10)
-    
-        #print(info)
-        
         ss.show_structure()
         ss.solve()
         noderesults = ss.get_node_results_system()
         elementsresults = ss.get_element_results()
-        newthicknesses = [thicknessforforce(result['N']) for result in elementsresults]
-        print(thicknesses)
+        newthicknesses = [thicknessforforce(result['N'] , result['length']) for result in elementsresults]
+        print("Optimal thicknesses: ",thicknesses)
         
         #ss.show_bending_moment(factor=0.5)
         #ss.show_displacement(factor=1)
@@ -101,16 +96,67 @@ def optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses,tensile
     elementweights = [thickness*strutwidth*result['length']*densityPLA
                       for thickness,result in zip(thicknesses,elementsresults)]
     totalweight = np.sum(elementweights)
-    print(totalweight)
+    print("Total weight: ",totalweight)
     return totalweight, thicknesses, ss
 
 
+def WeightWithMovableNodes(moveablenodelocations,*,nominalnodelocations,fixednodes,loadnodes,segs):
+    nodelocations = movenodelocations(moveablenodelocations,nominalnodelocations = nominalnodelocations,fixednodes = fixednodes,loadnodes = loadnodes)
+    totalweight,thicknesses,ss = optimize_segment_weights(nodelocations,segs,fixednodes,loadnodes)
+    return totalweight
+
+
+
+
+
+def movenodelocations(moveablenodelocations,*,nominalnodelocations,fixednodes,loadnodes):
+    moveableindicies = set(range(len(nominalnodelocations)))
+    moveableindicies -= set(loadnodes)
+    moveableindicies -= set([i for i,nodetype in fixednodes])
+    moveableindicies = sorted(list(moveableindicies))
+    if moveablenodelocations is None:
+        moveablenodelocations = np.array([nominalnodelocations[i] for i in moveableindicies])
+    moveablenodelocations = np.asarray(moveablenodelocations).reshape((-1,2))
+    if len(moveableindicies) != len(moveablenodelocations):
+        raise RuntimeError("Wrong number of movable nodes")
+    newnodelocations = np.array(nominalnodelocations)
+    for index,newnodelocation in zip(moveableindicies,moveablenodelocations):
+        newnodelocations[index] = newnodelocation
+    return newnodelocations, moveablenodelocations
+    
+def WeightWithNewLocations(moveablenodelocations,*,nominalnodelocations,fixednodes,loadnodes,segs):
+    moveablenodelocations = np.asarray(moveablenodelocations).reshape((-1,2))
+    newlocations,moveablenodelocations = movenodelocations(moveablenodelocations,nominalnodelocations=nominalnodelocations,fixednodes=fixednodes,loadnodes=loadnodes)
+    totalweight,thicknesses,ss = optimize_segment_weights(newlocations,segs,fixednodes,loadnodes)
+    return totalweight
+
 
 def main():
-    nodes,segs,fixednodes,loadnodes = getstructuredetails('Triangle')
+    nominalnodelocations,segs,fixednodes,loadnodes = getstructuredetails('Warren')
     thicknesses = np.ones(len(segs))
-    totalweight,thicknesses,ss = optimize_segment_weights(nodes,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA)
-            
+    totalweight,thicknesses,ss = optimize_segment_weights(nominalnodelocations,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA)
+    
+    newlocations,moveablenodelocations = movenodelocations(None,nominalnodelocations=nominalnodelocations,fixednodes=fixednodes,loadnodes=loadnodes)
+    
+    moveablenodelocations += 2
+    
+    newlocations,moveablenodelocations = movenodelocations(moveablenodelocations,nominalnodelocations=nominalnodelocations,fixednodes=fixednodes,loadnodes=loadnodes)
+    
+    totalweight,thicknesses,ss = optimize_segment_weights(newlocations,segs,fixednodes,loadnodes,thicknesses,tensile=tensilePLA)
+    
+    print("Weight with new locations: ",WeightWithNewLocations(moveablenodelocations,nominalnodelocations=nominalnodelocations,fixednodes=fixednodes,loadnodes=loadnodes, segs=segs))
+    
+    weightwithonlylocations = partial(WeightWithNewLocations, nominalnodelocations=nominalnodelocations,fixednodes=fixednodes,loadnodes=loadnodes, segs=segs)
+    
+    print(weightwithonlylocations(moveablenodelocations))
+    
+    result = minimize(weightwithonlylocations,moveablenodelocations,tol=1e-6)
+    
+    print(result)
+    
+    
+    pass
+
 
 
 

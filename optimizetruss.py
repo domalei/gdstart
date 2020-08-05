@@ -29,7 +29,7 @@ def getstructuredetails(trusstype):
         fixednodes = [[0,'hinged'],[4,'hinged']]
         loadnodes = [1,3]
         nodes = [[0,0],[5,10],[10,0],[15,10],[20,0]]
-        segs = [[0,1],[1,2],[2,3],[3,4],[0,4 ],[1,3]]
+        segs = [[0,1],[1,2],[2,3],[3,4],[0,2],[2,4],[1,3]]
     elif trusstype == "Howe":
         nodes = ([0,0],[5,10],[10,0],[15,10],[20,0])
         segs = ([0,1],[1,2],[2,3],[])
